@@ -1,0 +1,34 @@
+import { useEffect, useRef } from "react";
+import { isFinePointer } from "./useReducedMotion";
+
+/** Елемент м'яко «притягується» до курсора. */
+export function useMagnetic<T extends HTMLElement>(strength = 0.35) {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !isFinePointer()) return;
+    let raf = 0;
+    const move = (e: PointerEvent) => {
+      const r = el.getBoundingClientRect();
+      const x = (e.clientX - (r.left + r.width / 2)) * strength;
+      const y = (e.clientY - (r.top + r.height / 2)) * strength;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      });
+    };
+    const leave = () => {
+      cancelAnimationFrame(raf);
+      el.style.transition = "transform .6s cubic-bezier(.16,1,.3,1)";
+      el.style.transform = "translate3d(0,0,0)";
+      setTimeout(() => (el.style.transition = ""), 600);
+    };
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerleave", leave);
+    return () => {
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerleave", leave);
+    };
+  }, [strength]);
+  return ref;
+}
